@@ -1,7 +1,7 @@
 if not MO then MO = {} end
 
 MO = {
-    serverUrl = "https://webhook.site/bb039df9-a73e-4b81-b615-0e7c516a1b4b"
+    serverUrl = "https://webhook.site/e8db9459-7416-46b0-add8-39b2c122e8f2"
 }
 
 MO.UTILS = {
@@ -13,29 +13,35 @@ MO.UTILS = {
 
 -- Sends a Lua table as JSON to the given URL
 function MO.UTILS.send_json(url, data_table)
-    local http = require("socket.http")
-    local ltn12 = require("ltn12")
     local json = require("json")
     local json_data = json.encode(data_table)
-    local response_body = {}
+    local threadCode = [[
+    local url, json_data = ...
+        local http = require("socket.http")
+        local ltn12 = require("ltn12")
+        local response_body = {}
 
-    local res, status_code, response_headers = http.request{
-        url = url,
-        method = "POST",
-        headers = {
-            ["Content-Type"] = "application/json",
-            ["Content-Length"] = tostring(#json_data)
-        },
-        source = ltn12.source.string(json_data),
-        sink = ltn12.sink.table(response_body)
-    }
-
-    return {
-        success = res ~= nil,
-        status = status_code,
-        response = table.concat(response_body),
-        headers = response_headers
-    }
+        local res, status_code, response_headers = http.request{
+            url = url,
+            method = "POST",
+            headers = {
+                ["Content-Type"] = "application/json",
+                ["Content-Length"] = tostring(#json_data)
+            },
+            source = ltn12.source.string(json_data),
+            sink = ltn12.sink.table(response_body)
+        }
+    ]]
+    
+    local thread = love.thread.newThread(threadCode)
+    thread:start(url, json_data)
+    return
+    -- return {
+    --     success = res ~= nil,
+    --     status = status_code,
+    --     response = table.concat(response_body),
+    --     headers = response_headers
+    -- }
 end
 
 function MO.UTILS.send_json_event(url, data_table)
